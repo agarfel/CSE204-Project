@@ -1,8 +1,8 @@
 # CSE204-Project
 
-Garcinuño Feliciano Angela
-Huima Klaara
-Massot Lucas
+Garcinuño Feliciano Angela <br>
+Huima Klaara <br>
+Massot Lucas 
 
 ### Playlist-based song recommender ###
 
