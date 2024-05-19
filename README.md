@@ -13,7 +13,7 @@ Once all the distances are computed we can call the function with a playlist of 
 a playlist of K recommended songs. From there we take all the distances from one song of the inputand all of the <br>
 dataset without the inputed songs. We get a matrix with as rows all the songs in the dataset without our input,<br>
 and as columns all the songs in the input, with as elements of the matrix itslef the distances between the row<br>
-song and the column song. To get the recommended playlist we take the K smallest sums over each row<br>
+song and the column song. To get the recommended playlist we take the K smallest sums over each row.<br>
 
 the algorithm relies on 6 'features' associated with each songs :
 - hottness (a number from 0-1)
