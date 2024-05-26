@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import math
 
 def sort_dataframe(song_df):
         song_df.sort_values(['title', 'artist_name'], ascending=True, ignore_index=True, inplace=True)
