@@ -59,34 +59,8 @@ def creating_autoencoder(input_size, code_size, node_size):
     return autoencoder, encoder
 
 
-def distance_encoder(song1, song2, encoder, term_index):
-    """
-    songs must be of the form ['artist_name', 'title', 'release', 'similar', 'hottness', 'artist_terms', 'artist_terms_weights', 'loudness', 'tempo']
-    
-    term_index has to be done on the full dataset 
-    """
-    
-    hsong1, hsong2 = np.array([song1[4], song1[7], song1[8]]), np.array([song2[4], song2[7], song2[8]])
-
-    atw1, atw2 = np.zeros(len(term_index)), np.zeros(len(term_index))
-    
-    if not any(pd.isna(song1[5])):  # Assuming song1[5] and song1[6] are lists of terms and weights
-        for term, weight in zip(song1[5], song1[6]):
-            weight_float = float(weight)
-            idx = term_index[term]
-            atw1[idx] = weight_float
-
-    if not any(pd.isna(song2[5])):  # Assuming song2[5] and song2[6] are lists of terms and weights
-        for term, weight in zip(song2[5], song2[6]):
-            weight_float = float(weight)
-            idx = term_index[term]
-            atw2[idx] = weight_float
-        
-    hsong1 = np.concatenate([hsong1, atw1])
-    hsong2 = np.concatenate([hsong2, atw2]) 
-    
-    encoded_song1, encoded_song2 = encoder.predict(np.array([hsong1, hsong2]), verbose=False)
-    
+def distance_encoder(song1_indx, song2_indx, encoder, data):
+    encoded_song1, encoded_song2 = encoder.predict(np.array([data[song1_indx], data[song2_indx]]), verbose=False)
     return np.linalg.norm(encoded_song1-encoded_song2)
 
 

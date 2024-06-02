@@ -5,6 +5,53 @@ import autoencoder as ae
 import matplotlib.pyplot as plt
 import build
 
+def reduce_terms(df):
+    terms = ['00','40','50','60','70','80','90',
+    'hip hop', 'house', 'jazz','acid','blues','acoustic','rock','metal','techno','punk','rap','ambient','alternative','pop','bachata','ballet',
+    'heavy','funk','chill','folk','reggae','indie','soul','country','latin','japan','dance','disco','german','classic','french','greek','brazil',
+    'irish','viking','turk','finish','celtic','mambo','rumba','merengue','karaoke','swing','norway','arab','chinese','japan','canad','scandi','salsa',
+    'beach','contemporary', 'gospel', 'psych', 'melod']
+    
+    for i in range(len(df)):
+        t = []
+        w = []
+        for pterm in terms:
+            avg = 0
+            n = 0
+            for sterm in df.iloc[i]['artist_terms']:
+                if pterm in sterm or sterm in pterm:
+                    n+=1
+                    avg += float(df.iloc[i]['artist_terms_weights'][df.iloc[i]['artist_terms'].index(sterm)])
+    
+                    if pterm not in t:
+                            t.append(pterm)
+            if n != 0:
+                w.append(avg/n)
+    
+        df.at[i, 'artist_terms'] = t
+        df.at[i, 'artist_terms_weights'] = w
+    
+def build_batches(playlist: list, indexes: list, df: pd.core.frame.DataFrame, encoder, filename):
+    """
+    input: list of songs, list of indexes, distance matrix
+    output: distance to playlist matrix, total distance vector
+    """
+
+    M = len(df)
+    N = len(indexes)
+    distances = [[0]*N]*M
+    print(N,M)
+    for j in range(M):
+        if j%100 == 0:
+            print("M: ", j)
+        for i in range(N):
+            distances[j][i] = ae.distance_encoder(j, i, encoder, df)
+    if filename:
+        df = pd.DataFrame(distances)
+        df.to_csv(filename, index=False)
+    return
+
+
 
 def load_data(filename):
     """
@@ -28,6 +75,7 @@ def load_data(filename):
     data['loudness'] = (data['loudness'] - l_min)/(l_max - l_min)
     alphabetical.sort_dataframe(data)
     term_index = ae.get_term_index(data)
+    reduce_terms(data)
 
     return data, term_index
 
@@ -38,27 +86,30 @@ def build_encoder(df, term_index, tuning = False):
 
     """
     data_train = ae.create_inputdata_ws(df, term_index)
-    autoencoder, encoder = ae.creating_autoencoder(data_train.shape[1],128, 200)
+    autoencoder, encoder = ae.creating_autoencoder(data_train.shape[1],100, 512)
     ae_history = autoencoder.fit(data_train, data_train, epochs=10)
     if tuning:
         plt.plot(ae_history.history['loss']);
         plt.xlabel('epochs')
         plt.ylabel('loss')
-    return encoder
+    return data_train, encoder
 
 
-def build_distances(df: pd.core.frame.DataFrame, encoder, term_index):
+def build_distances(df: pd.core.frame.DataFrame, encoder, filename = None):
     """
     input: dataFrame of songs
-    output: list of lists
+    output: list of lists = None
 
     Creates matrix of distances.
     """
     M = len(df)
     distances = [[0 for i in range(M)] for j in range(M)]
     for j in range(M):
+        if (j%1000 == 0): print("M: ", j)
         for i in range(j+1,M):
-            distances[i][j] = ae.distance_encoder(df.iloc[j], df.iloc[i], encoder, term_index)
+            distances[i][j] = ae.distance_encoder(j, i, encoder, df)
+    if filename:
+        df.to_csv(filename, index=False)
     return distances
 
 
@@ -95,7 +146,7 @@ def select_distance_to_playlist(playlist: list, indexes: list, distances: pd.cor
     return result, total
 
 
-def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.frame.DataFrame, encoder, term_index):
+def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.frame.DataFrame, encoder):
     """
     input: list of songs, list of indexes, distance matrix
     output: distance to playlist matrix, total distance vector
@@ -109,7 +160,7 @@ def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.fram
         if j%100 == 0:
             print("M: ", j)
         for i in range(N):
-            distances[j][i] = ae.distance_encoder(df.iloc[j], df.iloc[i], encoder, term_index)
+            distances[j][i] = ae.distance_encoder(j, i, encoder, df)
     total = []
     distances = pd.DataFrame(distances)
     for i in indexes:
