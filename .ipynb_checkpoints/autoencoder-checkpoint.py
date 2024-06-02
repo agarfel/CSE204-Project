@@ -9,7 +9,10 @@ from tensorflow.keras import Model
 
 
 def get_term_index(df):
-    unique_terms = set(term for sublist in df['artist_terms'] for term in sublist)
+    unique_terms = set(['00','40','50','60','70','80','90',
+    'hip hop', 'house', 'jazz','acid','blues','acoustic','rock','metal','techno','punk','rap','ambient','alternative','pop','bachata','ballet',
+'heavy','funk','chill','folk','reggae','indie','soul','country','latin','japan','dance','disco','german','classic','french','greek','brazil','irish','viking','turk','finish','celtic','mambo','rumba','merengue','karaoke','swing','norway','arab','chinese','japan','canad','scandi','salsa',
+    'beach','contemporary', 'gospel', 'psych', 'melod'])
     term_index = {term: idx for idx, term in enumerate(unique_terms)}
     return term_index
 
@@ -37,31 +40,36 @@ def create_inputdata_ws(df, term_index):
     return data_train
 
 
-def creating_autoencoder(input_size, code_size, node_size):
+def creating_autoencoder(input_size):
 
     # Encoder
     encoder_input = Input((input_size,))
-    encoder_nl = Dense(node_size, activation='relu')(encoder_input)
-    encoder_encode = Dense(code_size, activation='relu')(encoder_nl)
+    encoder_nl = Dense(50, activation='relu')(encoder_input)
+    encoder_encode = Dense(25, activation='relu')(encoder_nl)
+    encoder_encode2 = Dense(10, activation='relu')(encoder_encode)
 
     # Decoder
-    decoder_nl = Dense(node_size, activation='relu')(encoder_encode)
-    decoder_output = Dense(input_size)(decoder_nl)
+    decoder_nl = Dense(25, activation='relu')(encoder_encode2)
+    decoder_nl2 = Dense(50, activation='relu')(decoder_nl)
+
+    decoder_output = Dense(input_size)(decoder_nl2)
+
 
     # Build the autoencoder model
     autoencoder = Model(encoder_input, decoder_output)
     autoencoder.compile(loss='MSE', optimizer=tf.optimizers.Adam(learning_rate=0.001))
 
     # Build the encoder model
-    encoder = Model(encoder_input, encoder_encode)
+    encoder = Model(encoder_input, encoder_encode2)
 
     
     return autoencoder, encoder
 
 
-def distance_encoder(song1_indx, song2_indx, encoder, data):
-    encoded_song1, encoded_song2 = encoder.predict(np.array([data[song1_indx], data[song2_indx]]), verbose=False)
-    return np.linalg.norm(encoded_song1-encoded_song2)
+def distance_encoder(song1_indx, encoded_song, encoder, data):
+    encoded_song1 = encoder.predict(np.array([data[song1_indx]]), verbose=False)
+    #print(encoded_song1, encoded_song2)
+    return np.linalg.norm(encoded_song1-encoded_song)
 
 
 

@@ -4,12 +4,13 @@ import alphabetical
 import autoencoder as ae
 import matplotlib.pyplot as plt
 import build
+from keras.callbacks import EarlyStopping
+
 
 def reduce_terms(df):
     terms = ['00','40','50','60','70','80','90',
     'hip hop', 'house', 'jazz','acid','blues','acoustic','rock','metal','techno','punk','rap','ambient','alternative','pop','bachata','ballet',
-    'heavy','funk','chill','folk','reggae','indie','soul','country','latin','japan','dance','disco','german','classic','french','greek','brazil',
-    'irish','viking','turk','finish','celtic','mambo','rumba','merengue','karaoke','swing','norway','arab','chinese','japan','canad','scandi','salsa',
+'heavy','funk','chill','folk','reggae','indie','soul','country','latin','japan','dance','disco','german','classic','french','greek','brazil','irish','viking','turk','finish','celtic','mambo','rumba','merengue','karaoke','swing','norway','arab','chinese','japan','canad','scandi','salsa',
     'beach','contemporary', 'gospel', 'psych', 'melod']
     
     for i in range(len(df)):
@@ -86,8 +87,10 @@ def build_encoder(df, term_index, tuning = False):
 
     """
     data_train = ae.create_inputdata_ws(df, term_index)
-    autoencoder, encoder = ae.creating_autoencoder(data_train.shape[1],100, 512)
-    ae_history = autoencoder.fit(data_train, data_train, epochs=10)
+    autoencoder, encoder = ae.creating_autoencoder(data_train.shape[1])
+    earlyStop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+
+    ae_history = autoencoder.fit(data_train, data_train, epochs=10, shuffle=True, batch_size=32, validation_split=0.2, callbacks=[earlyStop])
     if tuning:
         plt.plot(ae_history.history['loss']);
         plt.xlabel('epochs')
@@ -151,23 +154,28 @@ def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.fram
     input: list of songs, list of indexes, distance matrix
     output: distance to playlist matrix, total distance vector
     """
-
     M = len(df)
     N = len(indexes)
-    distances = [[0]*N]*M
-    print(N,M)
+    distances = np.zeros((M, N))  # Correct initialization of distances matrix
+
+    playlist_encoding = encoder.predict(np.array([df[i] for i in indexes]), verbose=False)
+
     for j in range(M):
-        if j%100 == 0:
+        if j % 100 == 0:
             print("M: ", j)
+        encoded_song2 = encoder.predict(np.array([df[j]]), verbose=False)
+
         for i in range(N):
-            distances[j][i] = ae.distance_encoder(j, i, encoder, df)
-    total = []
-    distances = pd.DataFrame(distances)
+            distances[j][i] = np.linalg.norm(playlist_encoding[i] - encoded_song2[0])
+
+    total = distances.sum(axis=1)
+    distances_df = pd.DataFrame(distances)
+
     for i in indexes:
-        distances.drop(i, inplace=True)
-    for i in range(len(distances)):
-        total.append(sum(distances.iloc[i]))
-    return distances, total
+        distances_df.drop(i, inplace=True)
+
+    total = list(distances_df.sum(axis=1))
+    return distances_df, total
 
 
 def get_k_recommendations(total_d, k, df):
