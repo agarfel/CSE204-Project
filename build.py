@@ -25,7 +25,7 @@ def load_data(filename):
     return data
 
 
-def distance(song1, song2, alphas = [1,1,1,1,1], feature = 'all'):
+def distance(song1, song2, alphas = [1,1,1,1,1,1], feature = 'all'):
     """
     song1, song2 : python native lists    format : [artist, title, album, similar, hottness, terms, terms-weights, loudness, tempo]
     alphas : python native list
@@ -48,11 +48,15 @@ def distance(song1, song2, alphas = [1,1,1,1,1], feature = 'all'):
 
     if feature == 'all' or feature == 'similar':
         distance += alpha_similar*(1 - len([singer for singer in similar1 if singer in similar2])/100)
-        
-    if feature == 'all' or feature == 'terms':
+
+    if feature == 'all' or feature == 'terms1' or feature == 'terms2':
+        terms_set = { term for term in term1+terms2 }
         shared_terms = [term for term in terms1 if term in terms2]
+        
+    if feature == 'all' or feature == 'terms1':  # normalized weights 
         shared_weights1 = []
         shared_weights2 = []
+        weightsum = sum(weights1)+sum(weights2)
         for term in shared_terms:
             try:
                 shared_weights1.append(float(weights1[terms1.index(term)]))
@@ -60,7 +64,8 @@ def distance(song1, song2, alphas = [1,1,1,1,1], feature = 'all'):
             except:
                 print(len(terms1), len(weights1), len(terms2), len(weights2), song2)
                 print(weights1[terms1.index(term)],weights2[terms2.index(term)],term)
-        distance -= alpha_terms*sum([0.5*(shared_weights1[i] + shared_weights2[i]) for i in range(len(shared_weights1)) ])
+        distance += alpha_terms*(1 - sum([shared_weights1[i] + shared_weights2[i] for i in range(len(shared_weights1))])/weightsum)
+    
     return distance
 
 
