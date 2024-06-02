@@ -2,6 +2,33 @@ import pandas as pd
 import numpy as np
 import alphabetical
 
+def reduce_terms(df):
+    terms = ['00','40','50','60','70','80','90',
+    'hip hop', 'house', 'jazz','acid','blues','acoustic','rock','metal','techno','punk','rap','ambient','alternative','pop','bachata','ballet',
+    'heavy','funk','chill','folk','reggae','indie','soul','country','latin','japan','dance','disco','german','classic','french','greek','brazil',
+    'irish','viking','turk','finish','celtic','mambo','rumba','merengue','karaoke','swing','norway','arab','chinese','japan','canad','scandi','salsa',
+    'beach','contemporary', 'gospel', 'psych', 'melod']
+    
+    for i in range(len(df)):
+        t = []
+        w = []
+        for pterm in terms:
+            avg = 0
+            n = 0
+            for sterm in df.iloc[i]['artist_terms']:
+                if pterm in sterm or sterm in pterm:
+                    n+=1
+                    avg += float(df.iloc[i]['artist_terms_weights'][df.iloc[i]['artist_terms'].index(sterm)])
+    
+                    if pterm not in t:
+                            t.append(pterm)
+            if n != 0:
+                w.append(avg/n)
+    
+        df.at[i, 'artist_terms'] = t
+        df.at[i, 'artist_terms_weights'] = w
+
+
 def load_data(filename):
     """
     input: (string) file name
@@ -22,6 +49,7 @@ def load_data(filename):
     
     data['tempo'] = (data['tempo'] - t_min)/(t_max - t_min)
     data['loudness'] = (data['loudness'] - l_min)/(l_max - l_min)
+    reduce_terms(data)
     return data
 
 
@@ -48,6 +76,7 @@ def distance(song1, song2, alphas = [1,1,1,1,1,1], feature = 'all'):
 
     if feature == 'all' or feature == 'similar':
         distance += alpha_similar*(1 - len([singer for singer in similar1 if singer in similar2])/100)
+
 
     if feature == 'all' or feature == 'terms1' or feature == 'terms2':
         terms_set = { term for term in term1+terms2 }
