@@ -48,11 +48,11 @@ def load_data(filename):
     
     data['tempo'] = (data['tempo'] - t_min)/(t_max - t_min)
     data['loudness'] = (data['loudness'] - l_min)/(l_max - l_min)
-    reduce_terms(data)
+    #reduce_terms(data)
     return data
 
 
-def distance(song1, song2, alphas = [1,1,1,1,1], feature = 'all'):
+def distance(song1, song2, alphas = [1,1,1,0.5,3], feature = 'all'):
     """
     song1, song2 : python native lists    format : [artist, title, album, similar, hottness, terms, terms-weights, loudness, tempo]
     alphas : python native list
@@ -82,7 +82,7 @@ def distance(song1, song2, alphas = [1,1,1,1,1], feature = 'all'):
         shared_terms = [term for term in terms1 if term in terms2]
         shared_weights1 = []
         shared_weights2 = []
-        weightsum = sum(weights1)+sum(weights2)
+        weightsum = sum([float(w) for w in weights1])+sum([float(w) for w in weights2])
         for term in shared_terms:
             try:
                 shared_weights1.append(float(weights1[terms1.index(term)]))
