@@ -7,8 +7,7 @@ def reduce_terms(df):
     'hip hop', 'house', 'jazz','acid','blues','acoustic','rock','metal','techno','punk','rap','ambient','alternative','pop','bachata','ballet',
     'heavy','funk','chill','folk','reggae','indie','soul','country','latin','japan','dance','disco','german','classic','french','greek','brazil',
     'irish','viking','turk','finish','celtic','mambo','rumba','merengue','karaoke','swing','norway','arab','chinese','japan','canad','scandi','salsa',
-    'beach','contemporary', 'gospel', 'psych', 'melod']
-    
+    'beach','contemporary', 'gospel', 'psych', 'melod']    
     for i in range(len(df)):
         t = []
         w = []
@@ -77,12 +76,13 @@ def distance(song1, song2, alphas = [1,1,1,1,1], feature = 'all'):
     if feature == 'all' or feature == 'similar':
         distance += alpha_similar*(1 - len([singer for singer in similar1 if singer in similar2])/100)
 
-    print(weights1)
-    print(weights2)
+
     if feature == 'all' or feature == 'terms':
+        terms_set = { term for term in terms1+terms2 }
         shared_terms = [term for term in terms1 if term in terms2]
         shared_weights1 = []
         shared_weights2 = []
+        weightsum = sum(weights1)+sum(weights2)
         for term in shared_terms:
             try:
                 shared_weights1.append(float(weights1[terms1.index(term)]))
@@ -90,7 +90,11 @@ def distance(song1, song2, alphas = [1,1,1,1,1], feature = 'all'):
             except:
                 print(len(terms1), len(weights1), len(terms2), len(weights2), song2)
                 print(weights1[terms1.index(term)],weights2[terms2.index(term)],term)
-        distance -= alpha_terms*sum([0.5*(shared_weights1[i] + shared_weights2[i]) for i in range(len(shared_weights1)) ])
+        try:
+            distance += alpha_terms*(1 - sum([shared_weights1[i] + shared_weights2[i] for i in range(len(shared_weights1))])/weightsum)
+        except:
+            pass
+    
     return distance
 
 
@@ -114,15 +118,15 @@ def format_input(input: list, df: pd.core.frame.DataFrame):
     input: list of song names, dataFrame of songs
     output: list of songs, list of indexes of songs in dataFrame
     """
-
-    alphabetical.sort_dataframe(df)
-    index_dict = alphabetical.get_alpha_dict(df)
+    d = df.copy()
+    alphabetical.sort_dataframe(d)
+    index_dict = alphabetical.get_alpha_dict(d)
     
     indexes = [0]*len(input)
     result = []
     for i in range(len(input)):
-        index = alphabetical.get_index_song(input[i][0], input[i][1],df,index_dict)
-        result.append(df.iloc[index])
+        index = alphabetical.get_index_song(input[i][0], input[i][1], input[i][2], d,index_dict)
+        result.append(d.iloc[index])
         indexes[i]= index
             
     return result, indexes
