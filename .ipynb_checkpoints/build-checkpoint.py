@@ -27,8 +27,7 @@ def reduce_terms(df):
         df.at[i, 'artist_terms'] = t
         df.at[i, 'artist_terms_weights'] = w
 
-
-def load_data(filename):
+def load_data(filename, reduce = False, filterz = False):
     """
     input: (string) file name
     output: (pandas dataframe) of csv data
@@ -48,8 +47,14 @@ def load_data(filename):
     
     data['tempo'] = (data['tempo'] - t_min)/(t_max - t_min)
     data['loudness'] = (data['loudness'] - l_min)/(l_max - l_min)
-    #reduce_terms(data)
-    return data
+    if reduce:
+        reduce_terms(data)
+    if filterz:
+        df_filtered = data[(data['hottness'] != 0) & (data['loudness'] != 0) & (data['tempo'] != 0)]
+        df_filtered.reset_index(drop=True, inplace=True)
+        return df_filtered
+    else:
+        return data
 
 
 def distance(song1, song2, alphas = [1,1,1,0.5,3], feature = 'all'):
@@ -98,7 +103,7 @@ def distance(song1, song2, alphas = [1,1,1,0.5,3], feature = 'all'):
     return distance
 
 
-def build_distances(df: pd.core.frame.DataFrame):
+def build_distances(df: pd.core.frame.DataFrame, alphas = [1,1,1,1,1]):
     """
     input: dataFrame of songs
     output: list of lists
@@ -109,9 +114,41 @@ def build_distances(df: pd.core.frame.DataFrame):
     distances = [[0 for i in range(M)] for j in range(M)]
     for j in range(M):
         for i in range(j+1,M):
-            distances[i][j] = distance(df.iloc[j], df.iloc[i])
+            distances[i][j] = distance(df.iloc[j], df.iloc[i], alphas)
     return distances
 
+
+def get_song_index(df, title, artist_name, release):
+    """
+    Get the index of a song in the DataFrame based on its title, artist name, and release.
+    """
+    title_mask = df['title'] == title
+    artist_mask = df['artist_name'] == artist_name
+    release_mask = df['release'] == release
+    combined_mask = title_mask & artist_mask & release_mask
+    index = df.index[combined_mask].tolist()
+    
+    if index:
+        return index[0]
+    else:
+        return None
+
+
+def newformat(input: list, df: pd.core.frame.DataFrame):
+    """
+    input: list of song name, title and release and dataframe of songs
+    output: list of song (data objects) and respective indices
+    doesn't use alphabetization
+    """
+    indices = [0]*len(input)
+    result = []
+    
+    for i in range(len(input)):
+        index = get_song_index(df, input[i][0], input[i][1], input[i][2])
+        result.append(df.iloc[index])
+        indices[i] = index
+
+    return result, indices
 
 def format_input(input: list, df: pd.core.frame.DataFrame):
     """
@@ -125,7 +162,7 @@ def format_input(input: list, df: pd.core.frame.DataFrame):
     indexes = [0]*len(input)
     result = []
     for i in range(len(input)):
-        index = alphabetical.get_index_song(input[i][0], input[i][1], input[i][2], d,index_dict)
+        index = alphabetical.get_song_index(input[i][0], input[i][1], input[i][2], d,index_dict)
         result.append(d.iloc[index])
         indexes[i]= index
             
@@ -146,7 +183,7 @@ def select_distance_to_playlist(playlist: list, indexes: list, distances: pd.cor
     return result, total
 
 
-def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.frame.DataFrame):
+def compute_distance_to_playlist1(playlist: list, indexes: list, df: pd.core.frame.DataFrame, alphas=[1,1,1,1,1]):
     """
     input: list of songs, list of indexes, distance matrix
     output: distance to playlist matrix, total distance vector
@@ -157,7 +194,7 @@ def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.fram
     distances = [[0 for i in range(N)] for j in range(M)]
     for j in range(M):
         for i in range(N):
-            distances[j][i] = distance(df.iloc[j], playlist[i])
+            distances[j][i] = distance(df.iloc[j], playlist[i], alphas = alphas)
     total = []
     distances = pd.DataFrame(distances)
     for i in indexes:
@@ -165,6 +202,29 @@ def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.fram
     for i in range(len(distances)):
         total.append(sum(distances.iloc[i]))
     return distances, total
+
+def compute_distance_to_playlist(playlist: list, indexes: list, df: pd.core.frame.DataFrame, alphas=[1,1,1,1,1]):
+    """
+    input: list of songs, list of indexes, DataFrame of songs, alphas for distance calculation
+    output: distance to playlist matrix, total distance vector
+    """
+    df_filtered = df.drop(indexes)
+    M = len(df_filtered)
+    N = len(playlist)
+
+    distances = [[0 for i in range(N)] for j in range(M)]
+
+    for j in range(M):
+        for i in range(N):
+            distances[j][i] = distance(df_filtered.iloc[j], playlist[i], alphas)
+
+    distances_df = pd.DataFrame(distances)
+
+    total = distances_df.sum(axis=1).tolist()
+
+    return distances_df, total
+
+
 
 
 def get_k_recommendations(total_d, k, df):
