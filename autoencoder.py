@@ -6,13 +6,12 @@ import build
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Input, Conv2D, MaxPooling2D, Flatten, Dropout, BatchNormalization, Dropout
 from tensorflow.keras import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 
 
 def get_term_index(df):
-    unique_terms = set(['00','40','50','60','70','80','90',
-    'hip hop', 'house', 'jazz','acid','blues','acoustic','rock','metal','techno','punk','rap','ambient','alternative','pop','bachata','ballet',
-'heavy','funk','chill','folk','reggae','indie','soul','country','latin','japan','dance','disco','german','classic','french','greek','brazil','irish','viking','turk','finish','celtic','mambo','rumba','merengue','karaoke','swing','norway','arab','chinese','japan','canad','scandi','salsa',
-    'beach','contemporary', 'gospel', 'psych', 'melod'])
+    unique_terms = set(term for sublist in df['artist_terms'] for term in sublist)
     term_index = {term: idx for idx, term in enumerate(unique_terms)}
     return term_index
 
@@ -44,23 +43,32 @@ def creating_autoencoder(input_size):
 
     # Encoder
     encoder_input = Input((input_size,))
-    encoder_nl = Dense(50, activation='relu')(encoder_input)
-    encoder_encode = Dense(25, activation='relu')(encoder_nl)
-    encoder_encode2 = Dense(10, activation='relu')(encoder_encode)
-
+    encoder_nl = Dense(500, activation='relu')(encoder_input)
+    encoder_nl2 = Dropout(0.2)(encoder_nl)
+    encoder_nl3 = BatchNormalization()(encoder_nl2)
+    encoder_encode = Dense(250, activation='relu')(encoder_nl3)
+    encoder_encode2 = Dropout(0.2)(encoder_encode)
+    encoder_encode3 = BatchNormalization()(encoder_encode2)
+    encoder_encode4 = Dense(100, activation='relu')(encoder_encode3)
+    encoder_encode5 = Dropout(0.2)(encoder_encode4)
+    encoder_encode6 = BatchNormalization()(encoder_encode5)
+    
     # Decoder
-    decoder_nl = Dense(25, activation='relu')(encoder_encode2)
-    decoder_nl2 = Dense(50, activation='relu')(decoder_nl)
-
-    decoder_output = Dense(input_size)(decoder_nl2)
-
-
+    decoder_nl = Dense(250, activation='relu')(encoder_encode2)
+    decoder_nl2 = Dropout(0.2)(decoder_nl)
+    decoder_nl3 = BatchNormalization()(decoder_nl2)
+    decoder_nl4 = Dense(500, activation='relu')(decoder_nl3)
+    decoder_nl5 = Dropout(0.2)(decoder_nl4)
+    decoder_nl6 = BatchNormalization()(decoder_nl5)
+    
+    decoder_output = Dense(input_size, activation='sigmoid')(decoder_nl6)
+    
     # Build the autoencoder model
     autoencoder = Model(encoder_input, decoder_output)
-    autoencoder.compile(loss='MSE', optimizer=tf.optimizers.Adam(learning_rate=0.001))
-
+    autoencoder.compile(loss='MSE', optimizer=Adam(learning_rate=0.001))
+    
     # Build the encoder model
-    encoder = Model(encoder_input, encoder_encode2)
+    encoder = Model(encoder_input, encoder_encode6)
 
     
     return autoencoder, encoder

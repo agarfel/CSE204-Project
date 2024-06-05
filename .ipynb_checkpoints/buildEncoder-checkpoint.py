@@ -76,7 +76,7 @@ def load_data(filename):
     data['loudness'] = (data['loudness'] - l_min)/(l_max - l_min)
     alphabetical.sort_dataframe(data)
     term_index = ae.get_term_index(data)
-    reduce_terms(data)
+    #reduce_terms(data)
 
     return data, term_index
 
@@ -88,9 +88,9 @@ def build_encoder(df, term_index, tuning = False):
     """
     data_train = ae.create_inputdata_ws(df, term_index)
     autoencoder, encoder = ae.creating_autoencoder(data_train.shape[1])
-    earlyStop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+    earlyStop = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
 
-    ae_history = autoencoder.fit(data_train, data_train, epochs=10, shuffle=True, batch_size=32, validation_split=0.2, callbacks=[earlyStop])
+    ae_history = autoencoder.fit(data_train, data_train, epochs=200, shuffle=True, batch_size=32, validation_split=0.2, callbacks=[earlyStop])
     if tuning:
         plt.plot(ae_history.history['loss']);
         plt.xlabel('epochs')
